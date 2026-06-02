@@ -17,3 +17,4 @@ transformers==4.35.2
 peft==0.7.1
 pydantic==2.5.0
 pydantic-core==2.14.1
+streamlit==1.32.0
