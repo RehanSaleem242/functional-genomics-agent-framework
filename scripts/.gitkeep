@@ -1,0 +1,4 @@
+# Update your notebook and scripts to use torch.inference_mode() for efficient CPU inference.
+# Example:
+# with torch.inference_mode():
+#     logits = model(input_tensor)

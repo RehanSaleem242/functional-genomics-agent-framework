@@ -1,0 +1,5 @@
+# Move your model files (.pth and .json) into the data/ directory for better organization.
+# Example:
+#   data/spyogenes_mamba_weights.pth
+#   data/mamba_tokenizer_config.json
+# Remove the originals from notebooks/ after moving.

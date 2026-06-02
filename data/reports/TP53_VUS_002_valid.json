@@ -1,0 +1,45 @@
+{
+  "metadata": {
+    "analysis_id": "TP53-VUS-002_20260602160000",
+    "variant_id": "TP53-VUS-002",
+    "timestamp": "2026-06-02T16:00:00Z",
+    "assembly": "hg38",
+    "schema_version": "1.0"
+  },
+  "input": {
+    "coordinate": "chr17:7571720C>T",
+    "context_window_kb": 1000,
+    "prediction_types": [
+      "chromatin_accessibility",
+      "expression_delta"
+    ]
+  },
+  "results": {
+    "chromatin_impact": {
+      "disruption_score": 0.4200,
+      "confidence": 0.7500,
+      "peak_proximity": "FAR",
+      "affected_track_count": 1
+    },
+    "expression_impact": {
+      "delta_mean_log2fc": -0.3200,
+      "delta_max_log2fc": -0.8900,
+      "tissues_affected": [
+        "lymphocyte"
+      ],
+      "confidence": 0.6800
+    },
+    "combined_risk_score": 0.3850,
+    "risk_category": "LOW_RISK",
+    "validation_status": "VALID",
+    "missing_tracks": []
+  },
+  "audit": {
+    "input_sha256": "7b4e8f1a3c6d9e2f5a8b1c4e7d0a3f6e9b2c5d8a1f4g7h0i3j6k9l2m5n8o",
+    "execution_duration_seconds": 14,
+    "data_sources": [
+      "dnase_hg38",
+      "gtex_expression_v8"
+    ]
+  }
+}

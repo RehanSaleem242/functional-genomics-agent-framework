@@ -1,0 +1,419 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "version": "1.0",
+  "description": "MCP Server Configuration for AI-Native Functional Genomics Analysis",
+  "mcp_servers": [
+    {
+      "id": "genomic-track-database",
+      "name": "Genomic Track Database Server",
+      "description": "MCP server providing access to functional track data (chromatin, expression) for hg38 coordinates",
+      "type": "http_rpc",
+      "endpoint": "http://localhost:9000/mcp",
+      "authentication": {
+        "type": "none"
+      },
+      "capabilities": [
+        "track_query",
+        "coordinate_resolution",
+        "tissue_context"
+      ],
+      "methods": {
+        "GetChromatinTrack": {
+          "description": "Query chromatin accessibility data for a genomic region",
+          "params": {
+            "chromosome": {
+              "type": "string",
+              "pattern": "^chr(([1-9])|([12][0-9])|(3[0-2])|X|Y|M)$"
+            },
+            "start_position": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 3000000000
+            },
+            "end_position": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 3000000000
+            },
+            "assembly": {
+              "type": "string",
+              "const": "hg38"
+            },
+            "track_type": {
+              "type": "string",
+              "enum": [
+                "dnase_hypersensitivity",
+                "atac_seq_consensus",
+                "h3k27ac",
+                "h3k4me1",
+                "h3k4me3"
+              ]
+            },
+            "tissue_filter": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "returns": {
+            "type": "object",
+            "properties": {
+              "track_name": {
+                "type": "string"
+              },
+              "regions": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "start": {
+                      "type": "integer"
+                    },
+                    "end": {
+                      "type": "integer"
+                    },
+                    "signal_value": {
+                      "type": "number",
+                      "minimum": 0.0,
+                      "maximum": 1.0
+                    },
+                    "tissue_context": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "assembly": {
+                "type": "string",
+                "const": "hg38"
+              }
+            }
+          }
+        },
+        "GetExpressionContext": {
+          "description": "Query tissue-specific baseline expression and eQTL associations",
+          "params": {
+            "chromosome": {
+              "type": "string",
+              "pattern": "^chr(([1-9])|([12][0-9])|(3[0-2])|X|Y|M)$"
+            },
+            "position": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 3000000000
+            },
+            "assembly": {
+              "type": "string",
+              "const": "hg38"
+            },
+            "gene_id": {
+              "type": "string"
+            },
+            "tissue_list": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "returns": {
+            "type": "object",
+            "properties": {
+              "baseline_expression": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "number"
+                }
+              },
+              "eqtl_associations": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "gene_id": {
+                      "type": "string"
+                    },
+                    "tissue": {
+                      "type": "string"
+                    },
+                    "p_value": {
+                      "type": "number",
+                      "minimum": 0.0,
+                      "maximum": 1.0
+                    },
+                    "effect_size": {
+                      "type": "number"
+                    }
+                  }
+                }
+              },
+              "assembly": {
+                "type": "string",
+                "const": "hg38"
+              }
+            }
+          }
+        },
+        "ValidateCoordinate": {
+          "description": "Validate and normalize a genomic coordinate against hg38 reference",
+          "params": {
+            "coordinate_string": {
+              "type": "string",
+              "pattern": "^chr([1-9]|[12][0-9]|3[0-2]|X|Y|M):[0-9]+[ATCG]>[ATCG]$"
+            },
+            "assembly": {
+              "type": "string",
+              "const": "hg38"
+            }
+          },
+          "returns": {
+            "type": "object",
+            "properties": {
+              "valid": {
+                "type": "boolean"
+              },
+              "normalized_coordinate": {
+                "type": "string"
+              },
+              "chromosome": {
+                "type": "string"
+              },
+              "position": {
+                "type": "integer"
+              },
+              "reference_allele": {
+                "type": "string"
+              },
+              "alternate_allele": {
+                "type": "string"
+              },
+              "assembly": {
+                "type": "string",
+                "const": "hg38"
+              },
+              "validation_notes": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "variant-annotation-service",
+      "name": "Variant Annotation Service",
+      "description": "MCP server providing functional impact predictions and variant interpretation",
+      "type": "http_rpc",
+      "endpoint": "http://localhost:9001/mcp",
+      "authentication": {
+        "type": "none"
+      },
+      "capabilities": [
+        "variant_scoring",
+        "regulatory_prediction",
+        "pathway_analysis"
+      ],
+      "methods": {
+        "PredictFunctionalImpact": {
+          "description": "Predict functional impact of a variant using AI models",
+          "params": {
+            "variant_id": {
+              "type": "string"
+            },
+            "coordinate": {
+              "type": "string"
+            },
+            "assembly": {
+              "type": "string",
+              "const": "hg38"
+            },
+            "context_window_kb": {
+              "type": "integer",
+              "minimum": 100,
+              "maximum": 5000,
+              "default": 1000
+            },
+            "model_version": {
+              "type": "string",
+              "enum": [
+                "alphagenome_v1",
+                "deep_learning_v2.1",
+                "hybrid_ensemble"
+              ]
+            }
+          },
+          "returns": {
+            "type": "object",
+            "properties": {
+              "variant_id": {
+                "type": "string"
+              },
+              "predicted_scores": {
+                "type": "object",
+                "properties": {
+                  "chromatin_disruption": {
+                    "type": "number",
+                    "minimum": 0.0,
+                    "maximum": 1.0
+                  },
+                  "expression_impact": {
+                    "type": "number",
+                    "minimum": -5.0,
+                    "maximum": 5.0
+                  },
+                  "composite_risk": {
+                    "type": "number",
+                    "minimum": 0.0,
+                    "maximum": 1.0
+                  }
+                }
+              },
+              "confidence_metrics": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "number",
+                  "minimum": 0.0,
+                  "maximum": 1.0
+                }
+              },
+              "assembly": {
+                "type": "string",
+                "const": "hg38"
+              }
+            }
+          }
+        },
+        "AnnotateRegulatory": {
+          "description": "Annotate regulatory elements and their disruption potential",
+          "params": {
+            "region": {
+              "type": "object",
+              "properties": {
+                "chromosome": {
+                  "type": "string"
+                },
+                "start": {
+                  "type": "integer"
+                },
+                "end": {
+                  "type": "integer"
+                },
+                "assembly": {
+                  "type": "string",
+                  "const": "hg38"
+                }
+              }
+            }
+          },
+          "returns": {
+            "type": "object",
+            "properties": {
+              "regulatory_elements": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "element_type": {
+                      "type": "string",
+                      "enum": [
+                        "promoter",
+                        "enhancer",
+                        "silencer",
+                        "insulator"
+                      ]
+                    },
+                    "position": {
+                      "type": "object",
+                      "properties": {
+                        "start": {
+                          "type": "integer"
+                        },
+                        "end": {
+                          "type": "integer"
+                        }
+                      }
+                    },
+                    "associated_gene": {
+                      "type": "string"
+                    },
+                    "tissue_specificity": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              },
+              "assembly": {
+                "type": "string",
+                "const": "hg38"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "reference-data-provider",
+      "name": "Reference Data Provider",
+      "description": "MCP server for querying hg38 reference sequences, annotations, and genomic databases",
+      "type": "file_system",
+      "root_path": "data/reference/",
+      "authentication": {
+        "type": "none"
+      },
+      "available_files": {
+        "sequence_reference": {
+          "path": "hg38.fasta",
+          "indexed": true,
+          "indexed_file": "hg38.fasta.fai"
+        },
+        "gene_annotations": {
+          "path": "gencode_v46_hg38.gtf.gz"
+        },
+        "regulatory_regions": {
+          "path": "regulatory_elements_hg38.bed.gz"
+        }
+      }
+    }
+  ],
+  "server_pool_config": {
+    "load_balancing": "round_robin",
+    "health_check_interval_seconds": 30,
+    "retry_policy": {
+      "max_retries": 3,
+      "backoff_strategy": "exponential",
+      "initial_delay_ms": 100
+    }
+  },
+  "routing_rules": [
+    {
+      "condition": "request_type == 'chromatin_query'",
+      "route_to": "genomic-track-database"
+    },
+    {
+      "condition": "request_type == 'expression_query'",
+      "route_to": "genomic-track-database"
+    },
+    {
+      "condition": "request_type == 'variant_prediction'",
+      "route_to": "variant-annotation-service"
+    },
+    {
+      "condition": "request_type == 'reference_sequence'",
+      "route_to": "reference-data-provider"
+    }
+  ],
+  "global_config": {
+    "enable_caching": true,
+    "cache_ttl_seconds": 3600,
+    "assembly_enforcement": "hg38",
+    "strict_type_validation": true,
+    "audit_logging": true
+  }
+}

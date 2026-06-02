@@ -1,0 +1,47 @@
+{
+  "metadata": {
+    "analysis_id": "BRCA1-VUS-001_20260602154656",
+    "variant_id": "BRCA1-VUS-001",
+    "timestamp": "2026-06-02T15:46:56Z",
+    "assembly": "hg38",
+    "schema_version": "1.0"
+  },
+  "input": {
+    "coordinate": "chr17:43044295A>G",
+    "context_window_kb": 1000,
+    "prediction_types": [
+      "chromatin_accessibility",
+      "expression_delta"
+    ]
+  },
+  "results": {
+    "chromatin_impact": {
+      "disruption_score": 0.8700,
+      "confidence": 0.9200,
+      "peak_proximity": "OVERLAPPING",
+      "affected_track_count": 3
+    },
+    "expression_impact": {
+      "delta_mean_log2fc": -1.4500,
+      "delta_max_log2fc": -2.3000,
+      "tissues_affected": [
+        "heart",
+        "brain",
+        "liver"
+      ],
+      "confidence": 0.7800
+    },
+    "combined_risk_score": 0.7100,
+    "risk_category": "HIGH_RISK",
+    "validation_status": "VALID",
+    "missing_tracks": []
+  },
+  "audit": {
+    "input_sha256": "4a3f9d8e2c1b7a5f9e3c2b1a0f9e8d7c6b5a4f3e2d1c0b9a8f7e6d5c4b3a2f1",
+    "execution_duration_seconds": 16,
+    "data_sources": [
+      "dnase_hg38",
+      "gtex_expression_v8"
+    ]
+  }
+}

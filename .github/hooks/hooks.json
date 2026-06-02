@@ -1,0 +1,186 @@
+{
+  "version": "1.0",
+  "hooks": [
+    {
+      "id": "variant-report-validation",
+      "name": "Variant Report Post-Generation Validation",
+      "description": "Automatically validate variant impact reports against Pydantic schema and functional track requirements when files are written to /data/reports/",
+      "trigger": {
+        "type": "FileEdit",
+        "path_pattern": "/data/reports/**/*.json",
+        "event": "file_created"
+      },
+      "action": {
+        "type": "shell_execution",
+        "command": "python tests/validate_pydantic_schema.py",
+        "arguments": [
+          "--report-file",
+          "{FILE_PATH}",
+          "--schema-version",
+          "1.0",
+          "--halt-on-error",
+          "true"
+        ],
+        "timeout_seconds": 30,
+        "capture_output": true,
+        "log_to": "logs/hook_execution.log"
+      },
+      "on_success": {
+        "action": "log_and_continue",
+        "message": "[HOOK_SUCCESS] Variant report validated and compliant with schema",
+        "log_level": "INFO"
+      },
+      "on_failure": {
+        "action": "block_operation",
+        "message": "[HOOK_ERROR] Variant report failed schema validation. See logs for details.",
+        "error_log": "logs/schema_validation_errors.log",
+        "cleanup": "move_to_quarantine"
+      }
+    },
+    {
+      "id": "assembly-context-check",
+      "name": "Assembly Context Verification Hook",
+      "description": "Pre-analysis verification that all input variant files declare hg38 assembly context",
+      "trigger": {
+        "type": "ToolUse",
+        "tool_name": "variant_file_reader",
+        "event": "pre_execution"
+      },
+      "action": {
+        "type": "python_inline",
+        "script_path": "src/hooks/validate_assembly_context.py",
+        "function_name": "verify_hg38_assembly",
+        "pass_context": {
+          "file_path": "{TOOL_INPUT_FILE}",
+          "expected_assembly": "hg38"
+        },
+        "timeout_seconds": 10
+      },
+      "on_success": {
+        "action": "allow_operation",
+        "message": "[ASSEMBLY_CHECK] hg38 assembly context confirmed",
+        "log_level": "DEBUG"
+      },
+      "on_failure": {
+        "action": "block_operation",
+        "message": "[ASSEMBLY_ERROR] File does not declare hg38 assembly. Cross-assembly analysis is prohibited.",
+        "error_log": "logs/assembly_violations.log",
+        "user_notification": "Assembly mismatch detected. Only hg38 is permitted in this workspace."
+      }
+    },
+    {
+      "id": "forbidden-shell-command-blocker",
+      "name": "Unauthorized Shell Command Blocker",
+      "description": "Prevent execution of raw, unverified terminal shell commands outside the Python testing framework",
+      "trigger": {
+        "type": "ToolUse",
+        "tool_name": "shell_execution",
+        "event": "pre_execution"
+      },
+      "action": {
+        "type": "python_inline",
+        "script_path": "src/hooks/validate_shell_execution.py",
+        "function_name": "check_shell_authorization",
+        "pass_context": {
+          "command": "{SHELL_COMMAND}",
+          "authorized_patterns": [
+            "^python (src/|tests/)",
+            "^jupyter notebook",
+            "^python -m pytest"
+          ]
+        },
+        "timeout_seconds": 5
+      },
+      "on_success": {
+        "action": "allow_operation",
+        "log_level": "DEBUG"
+      },
+      "on_failure": {
+        "action": "block_operation",
+        "message": "[SECURITY_VIOLATION] Unauthorized shell command blocked. Use Python scripts in src/ or tests/ instead.",
+        "error_log": "logs/security_violations.log",
+        "user_notification": "Shell command denied. Only authorized Python execution is allowed."
+      }
+    },
+    {
+      "id": "data-integrity-audit-trail",
+      "name": "Data Integrity & Audit Trail Logger",
+      "description": "Log all analysis operations with input fingerprints, timestamps, and execution traces for auditability",
+      "trigger": {
+        "type": "ToolUse",
+        "tool_name": "variant_analysis_executor",
+        "event": "pre_execution"
+      },
+      "action": {
+        "type": "python_inline",
+        "script_path": "src/hooks/audit_logging.py",
+        "function_name": "log_analysis_initiation",
+        "pass_context": {
+          "input_file": "{TOOL_INPUT_FILE}",
+          "analysis_type": "{ANALYSIS_TYPE}",
+          "timestamp": "{TIMESTAMP_ISO8601}"
+        },
+        "timeout_seconds": 5
+      },
+      "on_success": {
+        "action": "log_and_continue",
+        "message": "[AUDIT] Analysis initiated and logged",
+        "log_level": "INFO"
+      },
+      "on_failure": {
+        "action": "log_and_continue",
+        "message": "[AUDIT_WARNING] Audit logging failed; analysis continues with reduced traceability",
+        "log_level": "WARN"
+      }
+    },
+    {
+      "id": "post-analysis-artifact-generation",
+      "name": "Post-Analysis Artifact Generation & Versioning",
+      "description": "After successful analysis, generate versioned report artifacts and update audit records",
+      "trigger": {
+        "type": "ToolUse",
+        "tool_name": "variant_analysis_executor",
+        "event": "post_execution"
+      },
+      "action": {
+        "type": "python_inline",
+        "script_path": "src/hooks/post_analysis_packaging.py",
+        "function_name": "package_analysis_artifacts",
+        "pass_context": {
+          "output_file": "{TOOL_OUTPUT_FILE}",
+          "analysis_id": "{ANALYSIS_ID}",
+          "timestamp": "{TIMESTAMP_ISO8601}"
+        },
+        "timeout_seconds": 15
+      },
+      "on_success": {
+        "action": "log_and_continue",
+        "message": "[ARTIFACT_GEN] Analysis artifacts packaged and versioned",
+        "log_level": "INFO",
+        "side_effects": [
+          "archive_output_to_data_reports_archive",
+          "update_analysis_index"
+        ]
+      },
+      "on_failure": {
+        "action": "log_and_continue",
+        "message": "[ARTIFACT_GEN_WARN] Could not package artifacts; report still available",
+        "log_level": "WARN"
+      }
+    }
+  ],
+  "hook_execution_order": [
+    "assembly-context-check",
+    "forbidden-shell-command-blocker",
+    "data-integrity-audit-trail",
+    "variant-report-validation",
+    "post-analysis-artifact-generation"
+  ],
+  "global_settings": {
+    "enable_hooks": true,
+    "log_directory": "logs/",
+    "quarantine_directory": "data/.quarantine/",
+    "max_concurrent_hooks": 3,
+    "halt_on_critical_failure": true
+  }
+}
